@@ -1,0 +1,38 @@
+<web-app xmlns="http://java.sun.com/xml/ns/javaee"
+         version="3.0">
+    <display-name>K8s Tomcat App</display-name>
+    
+    <!-- PodServlet Configuration -->
+    <servlet>
+        <servlet-name>PodServlet</servlet-name>
+        <servlet-class>com.example.PodServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>PodServlet</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+
+    <!-- EnvServlet Configuration -->
+    <servlet>
+        <servlet-name>EnvServlet</servlet-name>
+        <servlet-class>com.example.EnvServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>EnvServlet</servlet-name>
+        <url-pattern>/env</url-pattern>
+    </servlet-mapping>
+
+    <!-- PingServlet Configuration -->
+    <servlet>
+        <servlet-name>PingServlet</servlet-name>
+        <servlet-class>com.example.PingServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>PingServlet</servlet-name>
+        <url-pattern>/ping</url-pattern>
+    </servlet-mapping>
+
+</web-app>
