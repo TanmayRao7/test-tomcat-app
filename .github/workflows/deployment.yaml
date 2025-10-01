@@ -31,3 +31,15 @@ jobs:
         with:
           path: "target/app.war"
           name: artifcat-${{ github.run_id }}
+  
+  containerization:
+    runs-on: ubuntu-latest
+    needs: [build]
+    name: Build & push docker image
+
+    steps:
+    - name: Login to docker hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ vars.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
