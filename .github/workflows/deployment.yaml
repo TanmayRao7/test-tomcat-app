@@ -22,3 +22,12 @@ jobs:
       
       - name: Build with maven
         run: mvn clean install
+
+      - name: Rename files
+        run: mv target/app-1.war target/app.war 
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: "target/app.war"
+          name: artifcat-${{ github.run_id }}
