@@ -46,7 +46,7 @@ jobs:
         name: artifcat-${{ github.run_id }}
     
     - name: Modify files
-      run: unzip -q -d target/ artifcat-${{ github.run_id }}.zip
+      run: unzip -q -d target/ artifcat-${{ github.run_id }}
 
     - name: Login to docker hub
       uses: docker/login-action@v3
