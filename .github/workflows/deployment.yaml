@@ -49,6 +49,8 @@ jobs:
       with:
           push: false
           tags: tanmayrao7/test-tomcat-app:${{ github.sha }}
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
     
     - name: List images
       run: docker ps
