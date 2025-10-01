@@ -53,4 +53,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
     
     - name: List images
-      run: docker ps
+      run: docker images
