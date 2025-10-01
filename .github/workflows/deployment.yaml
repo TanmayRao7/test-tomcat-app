@@ -40,6 +40,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Download artifact
+      uses: actions/download-artifact@v5
+      with:
+        name: artifcat-${{ github.run_id }}
+    
+    - name: Modify files
+      run: unzip -q -d target/ artifcat-${{ github.run_id }}.zip
+
     - name: Login to docker hub
       uses: docker/login-action@v3
       with:
