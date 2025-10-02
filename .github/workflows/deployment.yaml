@@ -61,5 +61,26 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
         push: true
     
-    - name: List images
-      run: docker images
+  deploy-to-dev:
+    runs-on: ubuntu-latest
+    needs: [containerization]
+
+    steps:
+      - name: Deploy To dev
+        run: echo "Deployment to dev"
+
+  deploy-to-qa:
+    runs-on: ubuntu-latest
+    needs: [containerization]
+
+    steps:
+      - name: Deploy To qa
+        run: echo "Deployment to qa"
+
+  deploy-to-prod:
+    runs-on: ubuntu-latest
+    needs: [containerization]
+
+    steps:
+      - name: Deploy To prod
+        run: echo "Deployment to prod"
