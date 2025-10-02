@@ -55,11 +55,11 @@ jobs:
     - name: Docker build
       uses: docker/build-push-action@v6
       with:
-          context: .
-          tags: tanmayrao7/test-tomcat-app:${{ github.sha }}
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          push: true
+        context: .
+        tags: tanmayrao7/test-tomcat-app:${{ github.sha }}
+        username: ${{ vars.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        push: true
     
     - name: List images
       run: docker images
