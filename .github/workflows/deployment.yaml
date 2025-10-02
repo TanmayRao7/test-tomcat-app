@@ -64,6 +64,9 @@ jobs:
   deploy-to-dev:
     runs-on: ubuntu-latest
     needs: [containerization]
+    environment:
+      name: dev
+      url: https://dev.application.com
 
     steps:
       - name: Deploy To dev
@@ -73,6 +76,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [containerization]
 
+    environment:
+      name: qa
+      url: https:/qa.application.com
+
     steps:
       - name: Deploy To qa
         run: echo "Deployment to qa"
@@ -80,6 +87,10 @@ jobs:
   deploy-to-prod:
     runs-on: ubuntu-latest
     needs: [containerization]
+
+    environment:
+      name: prod
+      url: https:/prod.application.com
 
     steps:
       - name: Deploy To prod
