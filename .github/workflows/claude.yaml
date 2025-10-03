@@ -1,355 +1,355 @@
-name: API Deployment
+# name: API Deployment
 
-on: workflow_dispatch
+# on: workflow_dispatch
 
-jobs:
-  build:
-    runs-on: self-hosted
-    name: Build API
-    steps:
-      - uses: actions/checkout@v4
+# jobs:
+#   build:
+#     runs-on: self-hosted
+#     name: Build API
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Set up maven
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+#       - name: Set up maven
+#         uses: actions/setup-java@v3
+#         with:
+#           java-version: '17'
+#           distribution: 'temurin'
           
-      - name: Cache local Maven repository
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('pom.xml') }}
+#       - name: Cache local Maven repository
+#         uses: actions/cache@v4
+#         with:
+#           path: ~/.m2/repository
+#           key: ${{ runner.os }}-maven-${{ hashFiles('pom.xml') }}
       
-      - name: Build with maven
-        run: mvn clean install
+#       - name: Build with maven
+#         run: mvn clean install
 
-      - name: Rename files
-        run: mv target/app-1.war target/app.war 
+#       - name: Rename files
+#         run: mv target/app-1.war target/app.war 
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          path: "target/app.war"
-          name: artifact-${{ github.run_id }}
+#       - name: Upload artifact
+#         uses: actions/upload-artifact@v4
+#         with:
+#           path: "target/app.war"
+#           name: artifact-${{ github.run_id }}
   
-  containerization:
-    runs-on: self-hosted
-    needs: [build]
-    name: Build & push docker image
+#   containerization:
+#     runs-on: self-hosted
+#     needs: [build]
+#     name: Build & push docker image
 
-    steps:
-    - uses: actions/checkout@v4
+#     steps:
+#     - uses: actions/checkout@v4
 
-    - name: Download artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: artifact-${{ github.run_id }}
-        path: target/
+#     - name: Download artifact
+#       uses: actions/download-artifact@v4
+#       with:
+#         name: artifact-${{ github.run_id }}
+#         path: target/
 
-    - name: Login to docker hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ vars.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+#     - name: Login to docker hub
+#       uses: docker/login-action@v3
+#       with:
+#         username: ${{ vars.DOCKERHUB_USERNAME }}
+#         password: ${{ secrets.DOCKERHUB_TOKEN }}
     
-    - name: Docker build and push
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        tags: tanmayrao7/test-tomcat-app:${{ github.sha }}
-        push: true
+#     - name: Docker build and push
+#       uses: docker/build-push-action@v6
+#       with:
+#         context: .
+#         tags: tanmayrao7/test-tomcat-app:${{ github.sha }}
+#         push: true
     
-  deploy-to-dev:
-    runs-on: self-hosted
-    needs: [containerization]
-    environment:
-      name: dev
-      url: https://dev.application.com
+#   deploy-to-dev:
+#     runs-on: self-hosted
+#     needs: [containerization]
+#     environment:
+#       name: dev
+#       url: https://dev.application.com
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Create GitHub Deployment
-        id: deployment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const deployment = await github.rest.repos.createDeployment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha,
-              environment: 'dev',
-              auto_merge: false,
-              required_contexts: [],
-              description: 'Deploying to dev environment'
-            });
-            return deployment.data.id;
+#       - name: Create GitHub Deployment
+#         id: deployment
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             const deployment = await github.rest.repos.createDeployment({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               ref: context.sha,
+#               environment: 'dev',
+#               auto_merge: false,
+#               required_contexts: [],
+#               description: 'Deploying to dev environment'
+#             });
+#             return deployment.data.id;
 
-      - name: Update Deployment Status - In Progress
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.result }},
-              state: 'in_progress',
-              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              description: 'Deployment to dev in progress'
-            });
+#       - name: Update Deployment Status - In Progress
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.result }},
+#               state: 'in_progress',
+#               log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+#               description: 'Deployment to dev in progress'
+#             });
 
-      - name: Install ArgoCD CLI
-        run: |
-          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-          chmod +x argocd
-          sudo mv argocd /usr/local/bin/argocd
+#       - name: Install ArgoCD CLI
+#         run: |
+#           curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+#           chmod +x argocd
+#           sudo mv argocd /usr/local/bin/argocd
 
-      - name: Deploy to ArgoCD
-        id: argocd_deploy
-        run: |
-          # Update image tag in manifest repo (adjust based on your setup)
-          argocd app set myapp-dev \
-            --server ${{ secrets.ARGOCD_SERVER }} \
-            --auth-token ${{ secrets.ARGOCD_TOKEN }} \
-            --grpc-web \
-            --parameter image.tag=${{ github.sha }}
+#       - name: Deploy to ArgoCD
+#         id: argocd_deploy
+#         run: |
+#           # Update image tag in manifest repo (adjust based on your setup)
+#           argocd app set myapp-dev \
+#             --server ${{ secrets.ARGOCD_SERVER }} \
+#             --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+#             --grpc-web \
+#             --parameter image.tag=${{ github.sha }}
           
-          # Sync the application
-          argocd app sync myapp-dev \
-            --server ${{ secrets.ARGOCD_SERVER }} \
-            --auth-token ${{ secrets.ARGOCD_TOKEN }} \
-            --grpc-web
+#           # Sync the application
+#           argocd app sync myapp-dev \
+#             --server ${{ secrets.ARGOCD_SERVER }} \
+#             --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+#             --grpc-web
           
-          # Wait for sync to complete
-          argocd app wait myapp-dev \
-            --server ${{ secrets.ARGOCD_SERVER }} \
-            --auth-token ${{ secrets.ARGOCD_TOKEN }} \
-            --grpc-web \
-            --health \
-            --timeout 300
-        continue-on-error: true
+#           # Wait for sync to complete
+#           argocd app wait myapp-dev \
+#             --server ${{ secrets.ARGOCD_SERVER }} \
+#             --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+#             --grpc-web \
+#             --health \
+#             --timeout 300
+#         continue-on-error: true
 
-      - name: Update Deployment Status - Success
-        if: steps.argocd_deploy.outcome == 'success'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.result }},
-              state: 'success',
-              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              environment_url: 'https://dev.application.com',
-              description: 'Deployment to dev successful'
-            });
+#       - name: Update Deployment Status - Success
+#         if: steps.argocd_deploy.outcome == 'success'
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.result }},
+#               state: 'success',
+#               log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+#               environment_url: 'https://dev.application.com',
+#               description: 'Deployment to dev successful'
+#             });
 
-      - name: Update Deployment Status - Failure
-        if: steps.argocd_deploy.outcome == 'failure'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.result }},
-              state: 'failure',
-              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              description: 'Deployment to dev failed'
-            });
-            core.setFailed('ArgoCD deployment failed');
+#       - name: Update Deployment Status - Failure
+#         if: steps.argocd_deploy.outcome == 'failure'
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.result }},
+#               state: 'failure',
+#               log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+#               description: 'Deployment to dev failed'
+#             });
+#             core.setFailed('ArgoCD deployment failed');
 
-  deploy-to-qa:
-    runs-on: self-hosted
-    needs: [deploy-to-dev]
-    environment:
-      name: qa
-      url: https://qa.application.com
+#   deploy-to-qa:
+#     runs-on: self-hosted
+#     needs: [deploy-to-dev]
+#     environment:
+#       name: qa
+#       url: https://qa.application.com
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Create GitHub Deployment
-        id: deployment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const deployment = await github.rest.repos.createDeployment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha,
-              environment: 'qa',
-              auto_merge: false,
-              required_contexts: [],
-              description: 'Deploying to qa environment'
-            });
-            return deployment.data.id;
+#       - name: Create GitHub Deployment
+#         id: deployment
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             const deployment = await github.rest.repos.createDeployment({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               ref: context.sha,
+#               environment: 'qa',
+#               auto_merge: false,
+#               required_contexts: [],
+#               description: 'Deploying to qa environment'
+#             });
+#             return deployment.data.id;
 
-      - name: Update Deployment Status - In Progress
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.result }},
-              state: 'in_progress',
-              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              description: 'Deployment to qa in progress'
-            });
+#       - name: Update Deployment Status - In Progress
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.result }},
+#               state: 'in_progress',
+#               log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+#               description: 'Deployment to qa in progress'
+#             });
 
-      - name: Install ArgoCD CLI
-        run: |
-          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-          chmod +x argocd
-          sudo mv argocd /usr/local/bin/argocd
+#       - name: Install ArgoCD CLI
+#         run: |
+#           curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+#           chmod +x argocd
+#           sudo mv argocd /usr/local/bin/argocd
 
-      - name: Deploy to ArgoCD
-        id: argocd_deploy
-        run: |
-          argocd app set myapp-qa \
-            --server ${{ secrets.ARGOCD_SERVER }} \
-            --auth-token ${{ secrets.ARGOCD_TOKEN }} \
-            --grpc-web \
-            --parameter image.tag=${{ github.sha }}
+#       - name: Deploy to ArgoCD
+#         id: argocd_deploy
+#         run: |
+#           argocd app set myapp-qa \
+#             --server ${{ secrets.ARGOCD_SERVER }} \
+#             --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+#             --grpc-web \
+#             --parameter image.tag=${{ github.sha }}
           
-          argocd app sync myapp-qa \
-            --server ${{ secrets.ARGOCD_SERVER }} \
-            --auth-token ${{ secrets.ARGOCD_TOKEN }} \
-            --grpc-web
+#           argocd app sync myapp-qa \
+#             --server ${{ secrets.ARGOCD_SERVER }} \
+#             --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+#             --grpc-web
           
-          argocd app wait myapp-qa \
-            --server ${{ secrets.ARGOCD_SERVER }} \
-            --auth-token ${{ secrets.ARGOCD_TOKEN }} \
-            --grpc-web \
-            --health \
-            --timeout 300
-        continue-on-error: true
+#           argocd app wait myapp-qa \
+#             --server ${{ secrets.ARGOCD_SERVER }} \
+#             --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+#             --grpc-web \
+#             --health \
+#             --timeout 300
+#         continue-on-error: true
 
-      - name: Update Deployment Status - Success
-        if: steps.argocd_deploy.outcome == 'success'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.result }},
-              state: 'success',
-              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              environment_url: 'https://qa.application.com',
-              description: 'Deployment to qa successful'
-            });
+#       - name: Update Deployment Status - Success
+#         if: steps.argocd_deploy.outcome == 'success'
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.result }},
+#               state: 'success',
+#               log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+#               environment_url: 'https://qa.application.com',
+#               description: 'Deployment to qa successful'
+#             });
 
-      - name: Update Deployment Status - Failure
-        if: steps.argocd_deploy.outcome == 'failure'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.result }},
-              state: 'failure',
-              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              description: 'Deployment to qa failed'
-            });
-            core.setFailed('ArgoCD deployment failed');
+#       - name: Update Deployment Status - Failure
+#         if: steps.argocd_deploy.outcome == 'failure'
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.result }},
+#               state: 'failure',
+#               log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+#               description: 'Deployment to qa failed'
+#             });
+#             core.setFailed('ArgoCD deployment failed');
 
-  deploy-to-prod:
-    runs-on: self-hosted
-    needs: [deploy-to-qa]
-    environment:
-      name: prod
-      url: https://prod.application.com
+#   deploy-to-prod:
+#     runs-on: self-hosted
+#     needs: [deploy-to-qa]
+#     environment:
+#       name: prod
+#       url: https://prod.application.com
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Create GitHub Deployment
-        id: deployment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const deployment = await github.rest.repos.createDeployment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha,
-              environment: 'prod',
-              auto_merge: false,
-              required_contexts: [],
-              description: 'Deploying to prod environment'
-            });
-            return deployment.data.id;
+#       - name: Create GitHub Deployment
+#         id: deployment
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             const deployment = await github.rest.repos.createDeployment({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               ref: context.sha,
+#               environment: 'prod',
+#               auto_merge: false,
+#               required_contexts: [],
+#               description: 'Deploying to prod environment'
+#             });
+#             return deployment.data.id;
 
-      - name: Update Deployment Status - In Progress
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.result }},
-              state: 'in_progress',
-              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              description: 'Deployment to prod in progress'
-            });
+#       - name: Update Deployment Status - In Progress
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.result }},
+#               state: 'in_progress',
+#               log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+#               description: 'Deployment to prod in progress'
+#             });
 
-      - name: Install ArgoCD CLI
-        run: |
-          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-          chmod +x argocd
-          sudo mv argocd /usr/local/bin/argocd
+#       - name: Install ArgoCD CLI
+#         run: |
+#           curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+#           chmod +x argocd
+#           sudo mv argocd /usr/local/bin/argocd
 
-      - name: Deploy to ArgoCD
-        id: argocd_deploy
-        run: |
-          argocd app set myapp-prod \
-            --server ${{ secrets.ARGOCD_SERVER }} \
-            --auth-token ${{ secrets.ARGOCD_TOKEN }} \
-            --grpc-web \
-            --parameter image.tag=${{ github.sha }}
+#       - name: Deploy to ArgoCD
+#         id: argocd_deploy
+#         run: |
+#           argocd app set myapp-prod \
+#             --server ${{ secrets.ARGOCD_SERVER }} \
+#             --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+#             --grpc-web \
+#             --parameter image.tag=${{ github.sha }}
           
-          argocd app sync myapp-prod \
-            --server ${{ secrets.ARGOCD_SERVER }} \
-            --auth-token ${{ secrets.ARGOCD_TOKEN }} \
-            --grpc-web
+#           argocd app sync myapp-prod \
+#             --server ${{ secrets.ARGOCD_SERVER }} \
+#             --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+#             --grpc-web
           
-          argocd app wait myapp-prod \
-            --server ${{ secrets.ARGOCD_SERVER }} \
-            --auth-token ${{ secrets.ARGOCD_TOKEN }} \
-            --grpc-web \
-            --health \
-            --timeout 300
-        continue-on-error: true
+#           argocd app wait myapp-prod \
+#             --server ${{ secrets.ARGOCD_SERVER }} \
+#             --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+#             --grpc-web \
+#             --health \
+#             --timeout 300
+#         continue-on-error: true
 
-      - name: Update Deployment Status - Success
-        if: steps.argocd_deploy.outcome == 'success'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.result }},
-              state: 'success',
-              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              environment_url: 'https://prod.application.com',
-              description: 'Deployment to prod successful'
-            });
+#       - name: Update Deployment Status - Success
+#         if: steps.argocd_deploy.outcome == 'success'
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.result }},
+#               state: 'success',
+#               log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+#               environment_url: 'https://prod.application.com',
+#               description: 'Deployment to prod successful'
+#             });
 
-      - name: Update Deployment Status - Failure
-        if: steps.argocd_deploy.outcome == 'failure'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.result }},
-              state: 'failure',
-              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              description: 'Deployment to prod failed'
-            });
-            core.setFailed('ArgoCD deployment failed');
+#       - name: Update Deployment Status - Failure
+#         if: steps.argocd_deploy.outcome == 'failure'
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             await github.rest.repos.createDeploymentStatus({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               deployment_id: ${{ steps.deployment.outputs.result }},
+#               state: 'failure',
+#               log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+#               description: 'Deployment to prod failed'
+#             });
+#             core.setFailed('ArgoCD deployment failed');

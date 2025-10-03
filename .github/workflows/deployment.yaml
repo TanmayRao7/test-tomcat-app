@@ -3,7 +3,7 @@ name: API Deployment
 on: 
   workflow_dispatch
 
-run-name: "Deploy ${{ github.ref_name }} by @${{ github.actor }} (${GITHUB_SHA::7})"
+run-name: "Deployment for branch: ${{ github.ref_name }} with commit: ${{ github.sha }}"
 
 jobs:
   build:
