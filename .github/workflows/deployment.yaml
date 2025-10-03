@@ -1,6 +1,9 @@
 name: API Deployment
 
-on: push
+on: 
+  workflow_dispatch
+
+run-name: "Deploy ${{ github.ref_name }} by @${{ github.actor }} (${GITHUB_SHA::7})"
 
 jobs:
   build:
