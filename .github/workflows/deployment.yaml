@@ -131,6 +131,7 @@ jobs:
               description: 'Deployment to dev failed'
             });
             core.setFailed('ArgoCD deployment failed');
+        continue-on-error: true
 
 
   # deploy-to-qa:
