@@ -90,7 +90,7 @@ jobs:
 
       - name: Update Deployment Status - In Progress
         uses: actions/github-script@v7
-        id: deployment
+        id: deployment_progress_status
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -103,7 +103,7 @@ jobs:
             });
 
       - name: Update Deployment Status - Success
-        if: steps.deployment.outcome == 'success'
+        if: steps.deployment_progress_status.outcome == 'success'
         uses: actions/github-script@v7
         with:
           script: |
