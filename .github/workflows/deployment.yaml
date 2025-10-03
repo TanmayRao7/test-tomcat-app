@@ -4,7 +4,7 @@ on: push
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: Build API
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
           name: artifcat-${{ github.run_id }}
   
   containerization:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [build]
     name: Build & push docker image
 
@@ -62,7 +62,7 @@ jobs:
         push: true
     
   deploy-to-dev:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [containerization]
     environment:
       name: dev
@@ -73,7 +73,7 @@ jobs:
         run: echo "Deployment to dev"
 
   deploy-to-qa:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [containerization]
 
     environment:
@@ -85,7 +85,7 @@ jobs:
         run: echo "Deployment to qa"
 
   deploy-to-prod:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [containerization]
 
     environment:
