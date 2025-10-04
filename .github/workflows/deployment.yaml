@@ -54,6 +54,8 @@ jobs:
       url: https://dev.application.com
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Image tag update
         run: |
           chmod +x image_tag_updater.sh
@@ -72,6 +74,8 @@ jobs:
       url: https:/qa.application.com
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Image tag update
         run: |
           chmod +x image_tag_updater.sh
@@ -90,6 +94,8 @@ jobs:
       url: https:/prod.application.com
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Image tag update
         run: |
           chmod +x image_tag_updater.sh
